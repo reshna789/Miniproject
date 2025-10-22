@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Auction - ArtoMart</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/create_auction.css' %}">
+</head>
+<body>
+
+  <header>Create Auction</header>
+
+  <div class="form-container">
+    <h2>{{ auction_req.title }}</h2>
+
+    {% if artworks.exists %}
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- Artwork Selection -->
+        <label>Artwork</label>
+        <select name="artwork_id" required>
+          {% for art in artworks %}
+            <option value="{{ art.id }}" 
+              {% if preselected_artwork and art.id == preselected_artwork.id %}selected{% endif %}>
+              {{ art.title }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <!-- Auction Start Time -->
+        <label>Auction Start Time</label>
+        <input type="datetime-local" name="start_time" required>
+
+        <!-- Auction End Time -->
+        <label>Auction End Time</label>
+        <input type="datetime-local" name="end_time" required>
+
+        <!-- Reserve Price -->
+        <label>Reserve Price</label>
+        <input type="number" name="reserve_price" value="{{ auction_req.reserve_price }}" min="2000" required>
+
+        <button type="submit">Create Auction</button>
+      </form>
+    {% else %}
+      <p style="color:red;">⚠ No artworks available for this user.</p>
+    {% endif %}
+
+    <a href="{% url 'admindashboard' %}" class="back-link">← Back to Dashboard</a>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,89 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Bidding Monitor for "{{ auction.artwork.title }}"</h1>
+
+<!-- Auction Details -->
+<p><strong>Start Time:</strong> {{ auction.start_time }}</p>
+<p><strong>End Time:</strong> {{ auction.end_time }}</p>
+<p><strong>Reserve Price:</strong> {{ auction.reserve_price }}</p>
+<p><strong>Created By:</strong> {{ auction.created_by.username }}</p>
+
+<hr>
+
+<!-- Bids Table -->
+<h2>All Bids</h2>
+<table border="1" cellpadding="5" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Bidder</th>
+      <th>Amount</th>
+      <th>Time</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bid in bids %}
+    <tr>
+      <td>{{ bid.user.username }}</td>
+      <td>{{ bid.amount }}</td>
+      <td>{{ bid.created_at }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="3">No bids placed yet.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<hr>
+
+<!-- Bid Graph -->
+<h2>Bid Graph</h2>
+<canvas id="bidChart" width="800" height="400"></canvas>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const bidData = {{ bid_data|safe }};
+
+// Labels: bidder name + time
+const labels = bidData.map(b => b.user + " (" + b.time + ")");
+
+// Data: bid amounts
+const amounts = bidData.map(b => b.amount);
+
+// Create Chart.js line chart
+const ctx = document.getElementById('bidChart').getContext('2d');
+const bidChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Bid Amount',
+            data: amounts,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: true },
+            tooltip: { enabled: true }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Bid Amount' }
+            },
+            x: {
+                title: { display: true, text: 'Bidder (Time)' }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

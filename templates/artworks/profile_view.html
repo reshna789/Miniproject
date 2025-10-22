@@ -1,0 +1,77 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ profile_user.username }} - Profile</title>
+    <link rel="stylesheet" href="{% static 'artworks/css/profile_view.css' %}?v=123">
+</head>
+<body>
+
+   <!-- 🔹 Navbar -->
+<nav class="navbar">
+  <div class="logo">
+    <img src="{% static 'artworks/images/logo.png' %}" alt="Logo">
+    <span class="brand">ARTOMART</span>
+  </div>
+  <div class="nav-icons">
+
+    <ul>
+     <li><a href="{% url 'userdashboard' %}">Home</a></li>
+    <li><a href="{% url 'notifications' %}" >Notification 
+       {% if unread_count > 0 %}
+      <span class="notif-badge">{{ unread_count }}</span>
+    {% endif %}
+    </a></li>
+   
+    <li><a href="{% url 'logout_page' %}" >Logout</a></li>
+    </ul>
+  </div>
+</nav>
+
+  <!-- Profile Section -->
+    <!-- Profile Section -->
+  <div class="profile-container">
+    <img src="{% if profile_user.profile_image %}{{ profile_user.profile_image.url }}{% else %}{% static 'artworks/images/default-avatar.png' %}{% endif %}" 
+         alt="Profile Picture" class="profile-pic">
+    <h2>{{ profile_user.first_name }} {{ profile_user.last_name }}</h2>
+    <p>{{ profile_user.bio }}</p>
+
+    {% if is_owner %}
+      <a href="{% url 'profile_form' %}" class="edit-btn">Edit Profile</a>
+    {% endif %}
+
+    <!-- Artworks Section -->
+    <div class="artworks">
+  <h3>My Artworks</h3>
+  <div class="grid">
+    {% if artworks %}
+      {% for art in artworks %}
+        <div class="art-item">
+          <img src="{{ art.image.url }}" alt="{{ art.title }}">
+          <p>{{ art.title }}</p>
+          <p>Price: ₹{{ art.price }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p>No artworks uploaded yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+  </div>
+
+    <!-- Optional: JS for notifications or other dynamic UI -->
+    <script>
+        // Example: Update cart count if needed
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem("cart")) || [];
+            const cartCount = document.getElementById("cartCount");
+            if (cartCount) cartCount.textContent = cart.length;
+        }
+        updateCartCount();
+    </script>
+</body>
+</html>

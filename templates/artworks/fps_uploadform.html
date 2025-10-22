@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Artwork | ArtoMart</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/fps_uploadform.css' %}">
+</head>
+<body>
+  <h2>Upload Your Artwork</h2>
+
+  <!-- Django form -->
+  <form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    
+    <div class="form-group">
+      <label>Artwork Title</label>
+      <input type="text" name="title" required>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea name="desc" rows="3" required></textarea>
+    </div>
+    <div class="form-group">
+      <label>Price (₹)</label>
+      <input type="number" name="price" required>
+    </div>
+    <div class="form-group">
+      <label>Upload Image</label>
+      <input type="file" name="image" accept="image/*" required>
+    </div>
+    <button type="submit">Share</button>
+  </form>
+  
+
+  
+</body>
+</html>

@@ -1,0 +1,29 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forgot Password | ArtoMart</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/login.css' %}?v=124" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Forgot Password 🔑</h1>
+      <p>Enter your registered email, we’ll send reset instructions.</p>
+
+      <form>
+        <input type="email" placeholder="Enter your email" required />
+        <button type="submit" class="btn">Send Reset Link</button>
+      </form>
+
+      <div class="form-links">
+        <p><a href="{% url 'login' %}">⬅ Back to Login</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fixed Price Sales - ArtoMart</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/fixed_sales.css' %}?v=129">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="logo">
+    <img src="{% static 'artworks/images/logo.png' %}" alt="Logo">
+    <span class="brand">ARTOMART</span>
+  </div>
+
+  <div class="search-layer">
+    <input type="text" id="searchBar" placeholder="Search artworks, artists, auctions..."> 
+    <i class="fa fa-search"></i>
+  </div>
+
+  <div>
+    <button class="fixed-price-btn" id="goToUpload"><i class="fas fa-plus-circle"></i></button>
+  </div>
+
+  <div class="nav-icons">
+    <ul>
+      <li><a href="{% url 'userdashboard' %}">Home</a></li>
+      <li><a href="{% url 'auctions' %}">Auction</a></li>
+      <li><a href="{% url 'notifications' %}">Notification
+        {% if unread_count > 0 %}
+          <span class="notif-badge">{{ unread_count }}</span>
+        {% endif %}
+      </a></li>
+      <li><a href="{% url 'cart' %}" class="cart-link">
+        Cart<span id="cartCount" class="cart-count">{{ cart_count }}</span>
+      </a></li>
+      <li><a href="{% url 'logout_page' %}">Logout</a></li>
+      <li><a href="{% url 'profile_redirect' %}">Profile</a></li>
+    </ul>
+  </div>
+</nav>
+
+<br><br><br><br><br><br>
+
+<header>
+  <h1><center>Fixed Price Artworks</center></h1>
+</header>
+
+<div class="artwork-list">
+  {% for art in artworks %}
+    <div class="artwork-card" id="artwork-{{ art.id }}">
+      <h3>{{ art.title }}</h3>
+      <div class="card">
+        <img src="{{ art.image.url }}" alt="{{ art.title }}">
+
+        <!-- {% if art.sold %}
+          <div class="sold-badge">SOLD</div> 
+         {% endif %} -->
+
+      </div>
+
+      <p><b>Artist:</b> {{ art.user.username }}</p>
+      <p>{{ art.description }}</p>
+      <p><b>Price:</b> ₹{{ art.price }}</p>
+
+       <p><b>Status:</b> 
+        {% if art.sold %}
+          <span style="color: red; font-weight: bold;">SOLD</span>  <!-- ✅ Red highlight -->
+         {% else %}
+          {{ art.status }}
+        {% endif %}  
+       
+      </p>
+
+      <div class="actions">
+        {% if not art.sold %}  <!-- ✅ Hide buttons when sold -->
+          <button class="add-cart"
+                  data-id="{{ art.id }}"
+                  data-title="{{ art.title }}"
+                  data-price="{{ art.price }}"
+                  data-image="{{ art.image.url }}">🛒 Add to Cart</button>
+
+          <button>
+            <a href="{% url 'payment_page' art.id %}" class="buy-now-btn">⚡ Buy Now</a>
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  {% empty %}
+    <p>No artworks available.</p>
+  {% endfor %}
+</div>
+
+
+<script>
+
+  
+$('.buy-now').click(function(){
+    const artwork_id = $(this).data('id');
+    // Directly redirect to payment page
+    window.location.href = `/payment/${artwork_id}/?mode=single`;
+});
+
+   // Upload button
+  $('#goToUpload').click(function(){
+      window.location.href = "{% url 'fps_uploadform' %}";
+  });
+  
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+function updateCartCount() {
+    $.ajax({
+        url: "/cart/get/",
+        method: "GET",
+        success: function(data){
+            $('#cartCount').text(data.cart.length || 0);
+        },
+        error: function(){
+            $('#cartCount').text(0);
+        }
+    });
+}
+
+$(document).ready(function(){
+    updateCartCount();
+
+    $('.buy-now').click(function(){
+        const art_id = $(this).data('id');
+
+        // Step 1: Initiate Payment Session
+        $.ajax({
+            url: '/payment/initiate/' + art_id + '/',
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken},
+            success: function(response){
+                if(response.success){
+                    // Step 2: Redirect to checkout page
+                    window.location.href = response.checkout_url;
+                } else {
+                    alert(response.message);
+                }
+            },
+            error: function(){
+                alert('Error contacting server!');
+            }
+        });
+    });
+
+    // Check if redirected from payment success (sold_artwork param)
+    const urlParams = new URLSearchParams(window.location.search);
+    const soldArtId = urlParams.get('sold_artwork');
+    if(soldArtId){
+        const card = $('#artwork-' + soldArtId);
+
+        // Hide buttons
+        card.find('.actions').hide();
+
+        // Add SOLD badge
+        if(card.find('.sold-badge').length === 0){
+            card.find('.card').append('<div class="sold-badge">SOLD</div>');
+        }
+
+        // Update status text
+        card.find('p:contains("Status")').html('<b>Status:</b> SOLD');
+
+        // Remove query string so refreshing doesn't repeat
+        history.replaceState(null, '', window.location.pathname);
+    }
+});
+
+</script>
+</style>
+
+</body>
+</html>

@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | ArtoMart</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/logout.css' %}">
+ 
+</head>
+<body>
+  <div class="login-box">
+    <!-- Back icon inside login-box -->
+    <span class="back-icon">&#8592;</span>
+
+    <h1>Welcome, User!</h1>
+    <p>You are logged in.</p>
+    <button class="btn" id="logoutBtn">Logout</button>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h3>Confirm Logout</h3>
+      <p>Are you sure you want to logout?</p>
+      <div class="modal-actions">
+        <button class="btn confirm-logout">Yes, Logout</button>
+        <button class="btn cancel-logout">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const logoutBtn = document.getElementById('logoutBtn');
+    const logoutModal = document.getElementById('logoutModal');
+    const closeModalBtn = logoutModal.querySelector('.close-btn');
+    const confirmLogoutBtn = logoutModal.querySelector('.confirm-logout');
+    const cancelLogoutBtn = logoutModal.querySelector('.cancel-logout');
+    const backIcon = document.querySelector('.back-icon');
+
+    // Back icon click -> previous page
+    backIcon.addEventListener('click', () => window.history.back());
+
+    // Open modal
+    logoutBtn.addEventListener('click', () => { logoutModal.style.display = 'flex'; });
+
+    // Close modal
+    closeModalBtn.addEventListener('click', () => logoutModal.style.display = 'none');
+    cancelLogoutBtn.addEventListener('click', () => logoutModal.style.display = 'none');
+
+    // Confirm logout
+    confirmLogoutBtn.addEventListener('click', () => {
+
+  window.location.href = "{% url 'home' %}";
+});
+
+    // Click outside modal closes it
+    window.addEventListener('click', e => { if(e.target === logoutModal) logoutModal.style.display = 'none'; });
+  </script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Dashboard | ArtoMart</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/user_dashboard.css' %}?v=128">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+ <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">
+      <img src="{% static 'artworks/images/logo.png' %}" alt="Logo">
+      <span class="brand">ARTOMART</span>
+    </div>
+
+    <div class="search-box">
+      <input type="text" placeholder="Search ...">
+      <i class="fa fa-search"></i>
+    </div>
+
+    <div class="nav-icons">
+
+      <ul>
+      <li><a href="{% url 'userdashboard' %}">Home</a></li>
+      <li><a href="{% url 'notifications' %}" >Notification 
+        {% if unread_count > 0 %}
+        <span class="notif-badge">{{ unread_count }}</span>
+      {% endif %}
+      </a></li>
+      <li><a href="{% url 'cart' %}"  class="cart-link">
+        Cart<span id="cartCount" class="cart-count">0</span>
+      </a></li>
+      <li><a href="{% url 'logout_page' %}" >Logout</a></li>
+      <li><a href="{% url 'profile_redirect' %}" >Profile</a></li>
+      </ul>
+    </div>
+  </nav>
+
+<!-- Main Content -->
+<div class="main-content">
+
+  
+  
+<!-- Featured Carousel with welcome text overlay -->
+<section class="carousel">
+  <div class="overlay-text">
+    <h2>🎨 Welcome, {{ user.username }}!</h2>
+    <p>Explore the world of art and auctions at ArtoMart</p><br><br><br>
+     <section class="tabs">
+    <button class="tab-btn" onclick="window.location.href='{% url 'fixed_sales' %}'">
+      <i class="fa fa-tags"></i> <p>Shop exclusive artworks<br> at fixed prices!</p>
+    </button>
+    <button class="tab-btn" onclick="window.location.href='{% url 'auctions' %}'">
+      <i class="fa fa-gavel"></i><p>Introducing Live Auctions <br>on ArtoMart!</p>
+    </button>
+  </section>
+  </div>
+  <div class="bg-slide" style="background-image: url('{% static 'artworks/images/image.jpg' %}');"></div>
+  <div class="bg-slide" style="background-image: url('{% static 'artworks/images/imagehome.jpg' %}');"></div>
+</section>
+
+  
+
+  <!-- Winner Section -->
+  <div class="winner-section">
+    <center><h1>Latest Auction And Winners</h1><p>“Introducing Live Auctions on ArtoMart! Watch auctions unfold
+   in real-time, place bids instantly, and track the current highest bid
+    as the excitement builds. Don’t miss your chance to own unique artworks.”</p></center>
+   
+  
+
+  <!-- Auctions Section -->
+  <section class="auctions-section">
+    {% for auction in auctions %}
+      </a><div class="auction-card">
+        <h3>{{ auction.artwork.title }}</h3>
+        <p>Highest Bid: ₹{{ auction.highest_bid }}</p>
+         <p><b>Artist:</b> {{ auction.artwork.user.username }}</p>
+      <img src="{{ auction.artwork.image.url }}" alt="{{ auction.artwork.title }}" style="width:100%; max-width:300px; object-fit:cover;">
+        <p>Ends on: {{ auction.end_time|date:"Y-m-d H:i" }}</p>
+
+        {% if auction.is_ended %}
+          {% if auction.winner_announced %}
+            {% if auction.winner == user %}
+               <a href="{% url 'payment_page' auction.id %}" class="pay-btn">💰 Pay Now</a>
+            {% else %}
+              <div class="winner-msg other-winner">
+                Auction Ended — Winner: <strong>{{ auction.winner.username }}</strong>
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="pending-msg">⏳Ended</div>
+          {% endif %}
+        {% else %}
+          <div class="status-msg"><a href="{% url  'auctions' %}"> Live</a></div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <p>No auctions available.</p>
+    {% endfor %}
+  </section>
+
+</div>
+<!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 ArtoMart - Online Art Auction & Sales Platform</p>
+    </footer>
+
+</div>
+
+
+<script>
+/* ========= TAB SWITCH ========= */
+function showTab(tab) {
+  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+  document.getElementById(tab).classList.add("active");
+  document.querySelector(`.tab-btn[onclick="showTab('${tab}')"]`).classList.add("active");
+}
+
+/* ========= CAROUSEL ========= */
+function initBackgroundSlider() {
+  const slides = document.querySelectorAll('.bg-slide');
+  if (slides.length === 0) return;
+
+  let current = 0;
+  slides[current].classList.add('active');
+
+  setInterval(() => {
+    slides[current].classList.remove('active');
+    current = (current + 1) % slides.length;
+    slides[current].classList.add('active');
+  }, 3000);
+}
+
+/* ========= FETCH CART COUNT ========= */
+async function updateCartCount() {
+  try {
+    const response = await fetch("/cart/get/");
+    const data = await response.json();
+    const cartCounter = document.getElementById("cartCount");
+    if(cartCounter){
+      cartCounter.textContent = data.cart.length || 0;
+    }
+  } catch(err){
+    console.error("Failed to fetch cart count:", err);
+  }
+}
+
+/* ========= FETCH WINNERS ========= */
+async function fetchWinners() {
+  try {
+    const response = await fetch("{% url 'get_current_winners' %}");
+    const data = await response.json();
+
+    const winnerContainer = document.getElementById("winnerCards");
+    if (!winnerContainer) return;
+    winnerContainer.innerHTML = "";
+
+    const now = new Date().getTime();
+
+    data.forEach(auction => {
+      const endTime = new Date(auction.end_time).getTime();
+      if (now - endTime > 24 * 60 * 60 * 1000) return;
+
+      const card = document.createElement("div");
+      card.classList.add("auction-card");
+
+      let winnerText = auction.current_winner
+        ? auction.current_winner == "{{ request.user.username }}"
+          ? `<p class="winner-msg user-winner">You won this auction! 🎉</p>`
+          : `<p class="winner-msg other-winner">${auction.current_winner} won this auction</p>`
+        : `<p class="pending-msg">Winner not announced yet</p>`;
+
+      card.innerHTML = `<h3>${auction.title}</h3>${winnerText}`;
+      winnerContainer.appendChild(card);
+    });
+
+  } catch (error) {
+    console.error("Error fetching winners:", error);
+  }
+}
+
+/* ========= INITIALIZE EVERYTHING ========= */
+document.addEventListener("DOMContentLoaded", () => {
+  updateCartCount();   // ✅ cart count from server
+  fetchWinners();      // ✅ winners
+  initBackgroundSlider(); // ✅ background slider
+  setInterval(fetchWinners, 5000); // auto-refresh winners
+});
+// Get search input and all cards
+const searchBar = document.getElementById("searchBar");
+const artworkCards = document.querySelectorAll(".artwork-card"); // For Fixed Price
+// For Auction page use ".auction-card" instead
+
+searchBar.addEventListener("input", () => {
+    const query = searchBar.value.toLowerCase(); // user input
+
+    artworkCards.forEach(card => {
+        const title = card.querySelector("h3").textContent.toLowerCase();
+        const artist = card.querySelector("p").textContent.toLowerCase(); // first <p> = artist
+        // Add description if needed: const desc = card.querySelector("p.description").textContent.toLowerCase();
+
+        // Show card if query matches title or artist
+        if(title.includes(query) || artist.includes(query)){
+            card.style.display = "block";
+        } else {
+            card.style.display = "none";
+        }
+    });
+});
+
+</script>
+</body>
+</html>

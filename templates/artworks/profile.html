@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+
+<div class="topbar">
+    <h1></h1><br><br>
+    <a href="{% url 'userdashboard' %}" data-tooltip="Home">
+        <i class="fas fa-home"></i>
+    </a>
+</div>
+
+<div class="profile-container">
+    <div class="profile-header">
+        {% if request.user.profile_image %}
+            <img src="{{ request.user.profile_image.url }}" alt="Profile Picture" class="profile-pic">
+        {% else %}
+            <img src="{% static 'artworks/images/default-avatar.png' %}" alt="Profile Picture" class="profile-pic">
+        {% endif %}
+        <h2>{{ request.user.username }}</h2>
+        <p class="user-email">{{ request.user.email }}</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="profile-form">
+        {% csrf_token %}
+
+        <label>Full Name</label>
+        <input type="text" name="full_name" value="{{ request.user.first_name }} {{ request.user.last_name }}" placeholder="Enter your full name">
+
+        <label>Email</label>
+        <input type="email" name="email" value="{{ request.user.email }}" placeholder="Enter your email">
+
+        <label>Bio</label>
+        <textarea name="bio" placeholder="Write something about yourself...">{{ request.user.bio }}</textarea>
+
+        <label>Profile Picture</label>
+        <input type="file" name="profile_image">
+
+        <button type="submit" class="save-btn">Save Profile</button>
+    </form>
+</div>
+
+{% endblock %}

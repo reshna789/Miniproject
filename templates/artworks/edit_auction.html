@@ -1,0 +1,23 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Auction</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/edit_auction.css' %}?v=124">
+</head>
+<body>
+  <header><h1>Edit Auction: {{ auction.artwork.title }}</h1></header>
+  
+
+  <form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save Changes</button>
+    <a href="{% url 'admindashboard' %}">Cancel</a>
+  </form>
+
+</body>
+</html>

@@ -1,0 +1,251 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="checkout-container">
+
+    <div class="back-btn">
+        <a href="{% url 'fixed_sales' %}"><i class="fa fa-arrow-left"></i> Back</a>
+    </div>
+
+    <h2>Secure Payment</h2>
+
+    <div class="checkout-grid">
+
+        <!-- Billing & Card Form -->
+        <div class="form-section">
+            <form id="checkoutForm" method="POST">
+                {% csrf_token %}
+
+                <label>Full Name</label>
+                <input type="text" name="full_name" placeholder="Enter your full name" required pattern="[A-Za-z\s]{3,50}">
+                <span class="error-msg" id="full_name_error"></span>
+
+                <label>Email</label>
+                <input type="email" name="email" placeholder="example@mail.com" required>
+                <span class="error-msg" id="email_error"></span>
+
+                <label>Phone</label>
+                <input type="tel" name="phone" placeholder="+919876543210" required maxlength="13">
+                <span class="error-msg" id="phone_error"></span>
+
+                <label>Address</label>
+                <input type="text" name="address" placeholder="Street, City, ZIP" required minlength="5" maxlength="100">
+                <span class="error-msg" id="address_error"></span>
+
+                <label>Card Number</label>
+                <input type="text" name="card_number" placeholder="1234 5678 9012 3456" required pattern="^\d{4}\s\d{4}\s\d{4}\s\d{4}$">
+                <span class="error-msg" id="card_number_error"></span>
+
+                <div class="card-input">
+                    <input type="text" name="expiry" placeholder="MM/YY" required pattern="^(0[1-9]|1[0-2])\/\d{2}$">
+                    <input type="text" name="cvv" placeholder="CVV" required pattern="^\d{3}$">
+                </div>
+                <span class="error-msg" id="card_error"></span>
+
+                <div class="order-summary">
+                    <h3>Order Summary</h3>
+                    <p>{{ artwork.title }} - ₹{{ artwork.price }}</p>
+                    <div class="total">
+                        <span>Total</span>
+                        <span id="totalPrice">₹{{ artwork.price }}</span>
+                    </div>
+                   <button type="button" id="payBtn" class="pay-btn">Pay ₹{{ artwork.price }}</button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Payment Processing -->
+        <div id="paymentProcessing" style="display:none; text-align:center; margin-top:20px;">
+            <p>Processing Payment... ⏳</p>
+        </div>
+
+        <!-- Success Message -->
+        <div id="paymentSuccess" style="display:none; text-align:center; margin-top:20px;">
+            <h2>✅ Transaction Successful!</h2>
+            <p>You have successfully purchased: <strong>{{ artwork.title }}</strong></p>
+            <p>Amount Paid: ₹<span id="paidAmount">{{ artwork.price }}</span></p>
+            <button id="goDashboard">Go to Dashboard</button>
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+
+    
+document.addEventListener("DOMContentLoaded", function () {
+    const payBtn = document.getElementById("payBtn");
+    const processingDiv = document.getElementById("paymentProcessing");
+    const successDiv = document.getElementById("paymentSuccess");
+    const form = document.getElementById("checkoutForm");
+    const totalPrice = "{{ artwork.price }}";
+
+    // ✅ Validation function
+    function validateForm() {
+        const inputs = form.querySelectorAll("input[required]");
+        let allValid = true;
+
+        inputs.forEach(input => {
+            if (!input.checkValidity()) {
+                allValid = false;
+                input.style.border = "2px solid red"; // highlight error
+            } else {
+                input.style.border = "2px solid green"; // valid input
+            }
+        });
+
+        return allValid;
+    }
+
+
+
+
+
+    payBtn.addEventListener("click", function () {
+    if (!validateForm()) {
+        alert("⚠ Please fill all fields correctly before proceeding!");
+        return;
+    }
+    form.submit(); // ✅ This triggers Django POST and marks as SOLD
+});
+
+
+    // Go to dashboard button
+    document.getElementById("goDashboard").addEventListener("click", function () {
+        window.location.href = "{% url 'userdashboard' %}";
+    });
+});
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 
+<script>
+
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get("mode"); // single or cart
+    const currentUser = "{{ request.user.username }}";
+    window.paymentItems = [];
+
+    function displayCart() {
+        const orderItemsEl = document.getElementById('orderItems');
+        const totalPriceEl = document.getElementById('totalPrice');
+        let total = 0;
+        orderItemsEl.innerHTML = "";
+
+        window.paymentItems.forEach(item => {
+            total += parseFloat(item.price);
+            const div = document.createElement('div');
+            div.className = 'order-item';
+            div.style.display = "flex";
+            div.style.alignItems = "center";
+            div.style.marginBottom = "10px";
+            div.innerHTML = `
+                <img src="${item.image}" alt="${item.title}" style="width:60px;height:60px;object-fit:cover;margin-right:10px;">
+                <span style="flex:1">${item.title}</span>
+                <span>₹${parseFloat(item.price).toFixed(2)}</span>
+            `;
+            orderItemsEl.appendChild(div);
+        });
+
+        window.totalPrice = total;
+        totalPriceEl.textContent = `₹${total.toFixed(2)}`;
+        document.getElementById('payBtn').textContent = `Pay ₹${total.toFixed(2)}`;
+    }
+
+    Single Item (Buy Now)
+    if(mode === "single"){
+        const title = urlParams.get("title");
+        const price = parseFloat(urlParams.get("price"));
+        const image = urlParams.get("image");
+        const artworkId = urlParams.get("artwork_id");
+        if(title && price && artworkId && image){
+            window.paymentItems = [{id: artworkId, title, price, image}];
+            displayCart();
+        }
+    }
+    // Cart
+    else if(mode === "cart"){
+        fetch('/cart/get/')
+            .then(res => res.json())
+            .then(data => {
+                window.paymentItems = data.cart || [];
+                displayCart();
+            });
+    }
+
+
+// Payment button
+document.getElementById('payBtn').addEventListener('click', () => {
+    const form = document.getElementById('checkoutForm');
+    let valid = true;
+    document.querySelectorAll('.error-msg').forEach(span => span.textContent='');
+});
+
+    const fullName = form.full_name.value.trim();
+    const email = form.email.value.trim();
+    const phone = form.phone.value.trim();
+    const address = form.address.value.trim();
+    const cardNumber = form.card_number.value.trim();
+    const expiry = form.expiry.value.trim();
+    const cvv = form.cvv.value.trim();
+
+    if(!/^[A-Za-z\s]{3,50}$/.test(fullName)){document.getElementById('full_name_error').textContent="Full Name must be 3-50 letters"; valid=false;}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){document.getElementById('email_error').textContent="Enter valid email"; valid=false;}
+    if(!/^\+91\d{10}$/.test(phone)){document.getElementById('phone_error').textContent="Phone must start +91 and 10 digits"; valid=false;}
+    if(address.length < 5 || address.length > 100){document.getElementById('address_error').textContent="Address must be 5-100 chars"; valid=false;}
+    if(!/^\d{4}\s\d{4}\s\d{4}\s\d{4}$/.test(cardNumber)){document.getElementById('card_number_error').textContent="Card format 1234 5678 9012 3456"; valid=false;}
+    if(!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry) || !/^\d{3}$/.test(cvv)){document.getElementById('card_error').textContent="Expiry MM/YY & CVV 3 digits"; valid=false;}
+    if(!valid) return;
+
+    // Show loader
+    document.getElementById('paymentProcessing').style.display='block';
+
+    setTimeout(() => {
+        document.getElementById('paymentProcessing').style.display='none';
+        document.getElementById('form-section').style.display='none';
+        document.getElementById('paymentSuccess').style.display='block';
+        document.getElementById('successName').textContent = fullName;
+        document.getElementById('paidAmount').textContent = `₹${window.totalPrice.toFixed(2)}`;
+
+        // Update sold items
+        const soldItems = JSON.parse(localStorage.getItem('sold_items')) || [];
+        window.paymentItems.forEach(item => {
+            if(!soldItems.includes(item.id)) soldItems.push(item.id);
+        });
+        localStorage.setItem('sold_items', JSON.stringify(soldItems));
+
+        // Redirect to dashboard
+        setTimeout(()=>{ window.location.href = "{% url 'userdashboard' %}"; }, 2000);
+    }, 1000);
+});
+
+// Dashboard button
+document.getElementById('goDashboard').addEventListener('click', () => {
+    window.location.href = "{% url 'userdashboard' %}";
+});
+</script> -->
+
+{% endblock %}

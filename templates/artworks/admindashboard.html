@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArtoMart Admin Dashboard</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/admin_dashboard.css' %}?v=123">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <img src="{% static 'artworks/images/logo.png' %}" alt="Logo">
+      <span class="brand">ARTOMART</span>
+    </div>
+
+    <ul class="menu">
+      <li class="active">
+        <a href="{% url 'admindashboard' %}">📊 Dashboard</a>
+      </li>
+      <li>
+        <a href="{% url 'admindashboard' %}#users">
+          👥 Users
+          {% if new_users_count > 0 and not request.session.seen_users %}
+            <span class="badge">{{ new_users_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'admindashboard' %}#artworks">
+          🖼 Artworks
+          {% if new_artworks_count > 0 and not request.session.seen_artworks %}
+            <span class="badge">{{ new_artworks_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'admindashboard' %}#auctions">
+          ⏳ Auctions
+          {% if new_auctions_count > 0 and not request.session.seen_auctions %}
+            <span class="badge">{{ new_auctions_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'admindashboard' %}#notifications">
+          🔔 Auction Requests
+          {% if pending_auction_requests_count > 0 and not request.session.seen_requests %}
+            <span class="badge">{{ pending_auction_requests_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li><a href="#logout">🚪 Logout</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header>
+      <h1>Welcome, Admin</h1>
+      <div class="profile">
+        <img src="https://i.pravatar.cc/40" alt="admin">
+        <span>Admin</span>
+      </div>
+    </header>
+
+    <!-- Dashboard Overview -->
+    <section id="dashboard" class="content-section">
+      <h2>📊 Dashboard Overview</h2>
+      <div class="cards">
+        <div class="card0"><h3>👥<br>Total Users</h3><p>{{ users|length }}</p></div>
+        <div class="card1"><h3>🖼<br>Total Artworks</h3><p>{{ artworks|length }}</p></div>
+        <div class="card2"><h3>⏳<br>Active Auctions</h3><p>{{ active_auctions }}</p></div>
+        <div class="card3"><h3>🔔<br>Notifications</h3><p>{{ auction_requests|length }}</p></div>
+      </div>
+    </section><br>
+
+    <div id="toast"></div>
+
+    <!-- Auctions Section -->
+    <section id="auctions" class="content-section">
+      <h1>⏳ Live Auctions</h1><br>
+      {% for auction in auctions %}
+      <div class="auction-card" style="border:1px solid #ccc; padding:15px; margin-bottom:20px;">
+        
+          <div class="auction-image" style="flex:0 0 150px;">
+    {% if auction.artwork.image %}
+      <img src="{{ auction.artwork.image.url }}" alt="{{ auction.artwork.title }}" 
+           style="width:150px; height:150px; object-fit:cover; border-radius:8px; border:1px solid #ccc;">
+    {% else %}
+      <div style="width:150px; height:150px; background:#f2f2f2; display:flex; align-items:center; justify-content:center; color:#888; border-radius:8px;">No Image</div>
+    {% endif %}
+  </div>
+
+        <h1>Owned by: <strong>{{ auction.artwork.user.username }}</strong></h1>
+        <h3>{{ auction.artwork.title }} - Created by {{ auction.created_by.username }}</h3>
+        <p style="font-size:18px;">
+          Time Left: <span id="countdown-{{ auction.id }}" style="font-size: 30px; color: #bc0606;">Calculating...</span><br>
+          Start: {{ auction.start_time }} | End: {{ auction.end_time }} | 
+          Status: 
+          {% if auction.start_time > now %}Upcoming
+          {% elif auction.start_time <= now <= auction.end_time %}Live
+          {% else %}Ended
+          {% endif %}
+        </p>
+        <p style="color: rgb(54, 51, 51); font-weight: bold;">
+          Reserve Price: ₹{{ auction.reserve_price }} | 
+          Highest Bid: {% if auction.highest_bid %}₹{{ auction.highest_bid }} by {{ auction.highest_bidder }}{% else %}No bids yet{% endif %}
+        </p><br>
+        <p>Status: {% if auction.is_ended %}Ended{% else %}Ongoing{% endif %}</p>
+
+        {% if auction.is_ended and not auction.winner_announced %}
+          <button class="btn announce-btn" data-auction-id="{{ auction.id }}">Announce Winner</button>
+        {% elif auction.winner_announced %}
+          <span class="winner-label">Winner: {{ auction.winner.username }}</span>
+        {% endif %}
+
+        <h4 style="font-size: 20px;">Bidders:</h4>
+        {% if auction.bidders %}
+        <table class="bidders-table" style="width:100%; border-collapse: collapse; margin-bottom:10px;">
+          <thead>
+            <tr style="background-color:#f2f2f2;">
+              <th style="padding:8px; text-align:left;">Rank</th>
+              <th style="padding:8px; text-align:left;">Username</th>
+              <th style="padding:8px; text-align:left;">Bid Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for bid in auction.bidders|dictsortreversed:"amount" %}
+            <tr{% if forloop.first %} style="font-weight:bold; color:green;"{% endif %}>
+              <td style="padding:8px;">{{ forloop.counter }}</td>
+              <td style="padding:8px;">{{ bid.user.username }}{% if forloop.first %} ⭐{% endif %}</td>
+              <td style="padding:8px;">₹{{ bid.amount }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p>No bids yet</p>
+        {% endif %}
+
+        <div class="actions" style="margin-top:30px;">
+          {% if auction.start_time > now %}
+            <a href="{% url 'start_auction' auction.id %}" class="btn">Start Now</a>
+          {% endif %}
+          <a href="{% url 'edit_auction' auction.id %}" class="btn" style="border: 1px solid #d44444; border-radius: 5px; padding: 9px 25px;background-color: #c66464;">Edit</a>
+          <a href="{% url 'delete_auction' auction.id %}" class="btn btn-danger">Delete</a>
+        </div>
+      </div>
+      {% empty %}
+      <p>No auctions available.</p>
+      {% endfor %}
+
+      <!-- Weekly Live Auctions Chart -->
+      <h4 style="font-size: 20px;">Weekly Feedback (Live Auctions)</h4>
+      <canvas id="weekly-auctions-chart" style="max-width:600px; max-height:400px;"></canvas>
+    </section>
+
+    <!-- User Management -->
+    <section id="users" class="content-section">
+      <h2>👥 User Management</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Username</th><th>Email</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <button class="edit">Edit</button>
+              <button class="delete">Delete</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">No users found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+
+<!-- Artwork Management -->
+<section id="artworks" class="content-section">
+  <h2>🖼 Artwork Management</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Image</th>
+        <th>User</th>
+        <th>Price</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for art in artworks %}
+      <tr {% if art.sold %}style="background-color: #f2f2f2; color: #888;"{% endif %}>
+        <td>{{ art.id }}</td>
+        <td>{{ art.title }}</td>
+        <td>
+          {% if art.image %}
+            <img src="{{ art.image.url }}" width="60" height="60" style="object-fit:cover;">
+          {% else %}
+            No image
+          {% endif %}
+        </td>
+        <td>{{ art.user.username }}</td>
+        <td>₹{{ art.price }}</td>
+        <td>{% if art.sold %}SOLD{% else %}{{ art.status }}{% endif %}</td>
+        <td>
+          <!-- Delete button for all artworks -->
+          <form method="POST" action="{% url 'delete_artwork' art.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" onclick="return confirm('Are you sure you want to delete this artwork?');">
+              Delete
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">No artworks uploaded yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+
+    <!-- Auction Requests / Notifications -->
+    <section id="notifications" class="content-section">
+      <h2>🔔 Auction Requests</h2>
+      <table>
+        <thead>
+          <tr><th>Artwork</th><th>User</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for req in auction_requests %}
+          <tr>
+            <td>{{ req.title }}</td>
+            <td>{{ req.user.username }}</td>
+            <td>{{ req.status }}</td>
+            <td>
+              {% if req.status == "pending" %}
+                <a href="{% url 'approve_auction_request' req.id %}">Accept</a>
+                <a href="{% url 'reject_auction_request' req.id %}">Reject</a>
+              {% elif req.status == "in_progress" %}
+                <a href="{% url 'create_auction' req.id %}">Create</a>
+              {% elif req.status == "approved" %}
+                ✅ Auction Created
+              {% elif req.status == "rejected" %}
+                ❌ Rejected
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">No auction requests submitted yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Logout Section -->
+    <section id="logout" class="content-section">
+      <h2>🚪 Logout</h2>
+      <div class="logout-card">
+        <div class="logout-info">
+          <div class="icon">⚠️</div>
+          <div>
+            <h3>Ready to leave?</h3>
+            <p>You will be logged out from the admin panel. Make sure your changes are saved.</p>
+          </div>
+        </div>
+        <div class="logout-actions">
+          <button class="btn-outline" id="cancelLogout">Cancel</button>
+          <button class="btn-danger" id="confirmLogoutOpen">Logout</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Confirm Logout Modal -->
+    <div class="modal" id="logoutModal" aria-hidden="true">
+      <div class="modal-dialog">
+        <h3>Confirm Logout</h3>
+        <p>Are you sure you want to logout?</p>
+        <div class="modal-actions">
+          <button class="btn-outline" id="modalCancel">No, stay</button>
+          <button class="btn-danger" id="modalConfirm">Yes, logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast"></div>
+
+  <!-- JS Scripts -->
+  <script>
+    // Countdown timers for each auction
+    {% for auction in auctions %}
+      (function() {
+        const countdownEl = document.getElementById("countdown-{{ auction.id }}");
+        const endTime = new Date("{{ auction.end_time|date:'Y-m-d H:i:s' }}").getTime();
+        setInterval(() => {
+          const now = new Date().getTime();
+          const distance = endTime - now;
+          if (distance <= 0) {
+            countdownEl.innerHTML = "Ended";
+            return;
+          }
+          const hours = Math.floor((distance % (1000*60*60*24)) / (1000*60*60));
+          const minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
+          const seconds = Math.floor((distance % (1000*60)) / 1000);
+          countdownEl.innerHTML = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        }, 1000);
+      })();
+    {% endfor %}
+
+    // Weekly Live Auctions Flow Chart
+    const ctxWeekly = document.getElementById("weekly-auctions-chart").getContext('2d');
+    new Chart(ctxWeekly, {
+      type: 'line',
+      data: {
+        labels: JSON.parse('{{ weekly_days|safe|escapejs }}'),
+        datasets: [{
+          label: 'Live Auctions',
+          data: JSON.parse('{{ weekly_counts|safe|escapejs }}'),
+          fill: true,
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true, position: 'top' } },
+        scales: {
+          y: { beginAtZero: true, stepSize: 1 },
+          x: { title: { display: true, text: 'Day of Week' } }
+        }
+      }
+    });
+
+    function showToast(message, success = true, duration = 3000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.backgroundColor = success ? 'green' : 'red';
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, duration);
+    }
+
+    // AJAX for Announce Winner
+    document.querySelectorAll('.announce-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const auctionId = button.dataset.auctionId;
+
+        fetch("{% url 'announce_winner_ajax' 0 %}".replace('0', auctionId), {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showToast(`Winner announced: ${data.winner}`);
+            button.replaceWith(`<span class="winner-label">Winner: ${data.winner}</span>`);
+          } else {
+            showToast(data.message || 'Failed to announce winner');
+          }
+        })
+        .catch(err => showToast('Error: ' + err));
+      });
+    });
+
+    // Logout modal 
+    document.getElementById('confirmLogoutOpen').addEventListener('click', () => {
+       document.getElementById('logoutModal').classList.add('show');
+    }); 
+    document.getElementById('modalCancel').addEventListener('click', () => {
+       document.getElementById('logoutModal').classList.remove('show'); 
+    });
+    document.getElementById('cancelLogout').addEventListener('click', () => {
+       window.location.hash = '#dashboard';
+    });
+    document.getElementById('modalConfirm').addEventListener('click', () => {
+       window.location.href = "{% url 'home' %}"; 
+    });
+  </script>
+</body>
+</html>

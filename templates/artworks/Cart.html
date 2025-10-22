@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Cart - ArtoMart</title>
+  {% load static %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'artworks/css/Cart.css' %}?v=5">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="logo">
+    <img src="{% static 'artworks/images/logo.png' %}" alt="Logo">
+    <span class="brand">ARTOMART</span>
+  </div>
+  <div class="nav-icons">
+    <ul>
+      <li><a href="{% url 'userdashboard' %}">Home</a></li>
+      <li><a href="{% url 'fixed_sales' %}">Artworks</a></li>
+      <li><a href="{% url 'notifications' %}">Notification
+        {% if unread_count > 0 %}
+          <span class="notif-badge">{{ unread_count }}</span>
+        {% endif %}
+      </a></li>
+      <li><a href="{% url 'logout_page' %}">Logout</a></li>
+      <li><a href="{% url 'profile_redirect' %}">Profile</a></li>
+    </ul>
+  </div>
+</nav>
+
+<center>
+  <header>
+    <h1>🛒 My Cart</h1>
+  </header>
+</center>
+
+<main class="cart-container">
+  <div id="cartItems"></div>
+  <div class="cart-summary">
+    <h3>Total: ₹<span id="totalPrice">0.00</span></h3>
+
+    <!-- Checkout Button -->
+    <button id="checkoutBtn">Proceed to Checkout</button>
+  </div>
+</main>
+
+<script>
+const currentUser = "{{ request.user.username }}";
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  async function loadCart() {
+    const cartItems = document.getElementById("cartItems");
+    const totalPriceEl = document.getElementById("totalPrice");
+    const checkoutBtn = document.getElementById("checkoutBtn");
+    cartItems.innerHTML = "";
+    let total = 0;
+
+    try {
+      const response = await fetch("/cart/get/", { method: "GET" });
+      const data = await response.json();
+
+      if(data.cart.length === 0){
+        cartItems.innerHTML = "<p class='empty-cart'>Your cart is empty 🛍️</p>";
+        totalPriceEl.textContent = "0.00";
+        checkoutBtn.style.display = "none";
+        return;
+      }
+
+      // Get sold items from localStorage
+      const soldItems = JSON.parse(localStorage.getItem('sold_items')) || [];
+      let hasAvailable = false; // Track if any item is not sold
+
+      data.cart.forEach((item) => {
+        const isSold = soldItems.includes(item.id); // Check sold status
+        const div = document.createElement("div");
+        div.classList.add("cart-item");
+
+        div.innerHTML = `
+            <img src="${item.image}" alt="${item.title}">
+            <div class="cart-info">
+                <h4>${item.title}</h4>
+                <p>₹${item.price}</p>
+            </div>
+            ${isSold ? '<span class="sold-badge">SOLD</span>' : ''}
+            <button class="remove-btn" data-art-id="${item.id}" ${isSold ? 'disabled' : ''}>❌</button>
+        `;
+        cartItems.appendChild(div);
+
+        if(!isSold) {
+          total += parseFloat(item.price);
+          hasAvailable = true;
+        }
+      });
+
+      totalPriceEl.textContent = total.toFixed(2);
+      checkoutBtn.style.display = hasAvailable ? "block" : "none";
+
+      // Add event listeners to remove buttons (only for available items)
+      document.querySelectorAll(".remove-btn").forEach(btn => {
+        if(!btn.disabled){
+          btn.addEventListener("click", async () => {
+            const artId = btn.dataset.artId;
+            await removeFromCart(artId);
+          });
+        }
+      });
+
+    } catch(err) {
+      console.error(err);
+      cartItems.innerHTML = "<p class='empty-cart'>Failed to load cart 🛒</p>";
+      checkoutBtn.style.display = "none";
+    }
+  }
+
+  async function removeFromCart(artId) {
+    try {
+      const response = await fetch(`/cart/remove/${artId}/`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        }
+      });
+      const data = await response.json();
+
+      if(data.success){
+        loadCart();
+      } else if(data.message){
+        alert(data.message);
+      }
+
+    } catch(err){
+      console.error(err);
+      alert("Failed to remove item");
+    }
+  }
+
+  document.getElementById("checkoutBtn").addEventListener("click", () => {
+    window.location.href = `/payment/fixed/checkout/?mode=cart&user=${currentUser}`;
+  });
+
+  // Load cart on page load
+  loadCart();
+
+});
+</script>
+
+
+</body>
+</html>

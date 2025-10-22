@@ -1,0 +1,282 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Auctions - ArtoMart</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/auctions.css' %}?v=127">
+  <link rel="stylesheet" href="{% static 'artworks/css/auction_req.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+  <div class="logo">
+    <img src="{% static 'artworks/images/logo.png' %}" alt="Logo">
+    <span class="brand">ARTOMART</span>
+  </div>
+
+  <!-- Search + Request -->
+  <div class="search-layer">
+    <input type="text" placeholder="Search artworks, artists, auctions...">
+    <button class="request-btn"><i class="fas fa-plus-circle"></i>
+    </button>
+  </div>
+
+  <div class="nav-icons">
+    <ul>
+     <li><a href="{% url 'userdashboard' %}">Home</a></li>
+     <li><a href="{% url 'fixed_sales' %}">Artworks</a></li>
+    <li><a href="{% url 'notifications' %}" >Notification 
+       {% if unread_count > 0 %}
+      <span class="notif-badge">{{ unread_count }}</span>
+    {% endif %}
+    </a></li>
+    <li><a href="{% url 'cart' %}"  class="cart-link">Cart<span id="cartCount" class="cart-count">0</span></a></li>
+    <li><a href="{% url 'logout_page' %}" >Logout</a></li>
+    <li><a href="{% url 'profile_redirect' %}" >Profile</a></li>
+    </ul>
+  </div>
+</nav>
+
+  <!-- Auction Request Modal -->
+  <div id="requestModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <div class="auction-request-form">
+        <div class="form-container">
+          <h2><i class="fa fa-gavel"></i> Request Auction</h2>
+          <form method="post" enctype="multipart/form-data" action="{% url 'auction_request' %}">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="title">Artwork Title</label>
+              <input type="text" name="title" id="title" placeholder="Enter artwork title" required>
+            </div>
+            <div class="form-group">
+              <label for="image">Upload Artwork Image</label>
+              <input type="file" name="image" id="image" accept="image/*" required>
+            </div>
+            <div class="form-group">
+              <label>Reserve Price</label>
+              <input type="number" name="reserve_price" id="reserve_price" min="2000"
+                placeholder="Enter Reserve Price (≥2000)" required>
+            </div>
+            <div class="form-group">
+              <label for="notes">Additional Notes</label>
+              <textarea name="notes" id="notes" rows="3" placeholder="Any message to admin..."></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Submit Request</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div><br><br><br><br><br><br>
+
+  <!-- Auction Cards -->
+  <main class="grid">
+    {% for auction in auctions %}
+    <div class="auction-card">
+      <img src="{{ auction.artwork.image.url }}" alt="{{ auction.artwork.title }}">
+      <h3>{{ auction.artwork.title }}</h3>
+      <p>by {{ auction.artwork.user.username }}</p>
+
+      <p class="bid">Current Bid: ₹<span id="current-bid-{{ auction.id }}">{{ auction.highest_bid }}</span></p>
+
+      <p style="font-size: 20px;">
+        Time Remaining: <span id="timer-{{ auction.id }}" style="font-size: 30px; color: rgb(139, 9, 39);"></span>
+      </p>
+
+      <div id="bid-container-{{ auction.id }}">
+        {% if auction.is_live %}
+        <button onclick="toggleBidSection({{ auction.id }})">Place Bid</button>
+        <div id="bid-section-{{ auction.id }}"
+          style="display:none; margin-top:10px; border:1px solid #ccc; padding:10px; border-radius:8px;">
+          <p>Highest Bidder: <strong>{{ auction.highest_bidder.username|default:"No bids yet" }}</strong></p>
+          <p>Highest Bid: ₹<span id="highest-bid-{{ auction.id }}">{{ auction.highest_bid }}</span></p>
+          <form id="bid-form-{{ auction.id }}" onsubmit="submitBid(event, {{ auction.id }})">
+            {% csrf_token %}
+            <input type="number" name="bid_amount" min="{{ auction.highest_bid|add:1 }}" required
+              placeholder="Enter your bid">
+            <button type="submit">Submit Bid</button>
+          </form>
+          <p id="bid-message-{{ auction.id }}" style="color:red; margin-top:5px;"></p>
+        </div>
+        {% else %}
+        <span class="ended">Auction Ended</span>
+        {% endif %}
+      </div>
+
+    </div>
+    {% empty %}
+    <p>No active auctions.</p>
+
+  
+{% endfor %}
+</main>
+
+<script>
+
+const modal = document.getElementById("requestModal"); 
+const requestBtn = document.querySelector(".request-btn"); 
+const closeBtn = document.querySelector(".close-btn");
+ requestBtn.addEventListener("click", () => { modal.style.display = "flex";
+
+  }); 
+  closeBtn.addEventListener("click", () => { modal.style.display = "none";
+
+   });
+    window.addEventListener("click", (e) => { if (e.target === modal) 
+      modal.style.display = "none"; 
+    });
+       const reserveInput = document.getElementById('reserve_price'); 
+       reserveInput.addEventListener('input', () => {
+         if (reserveInput.value < 2000) {
+           reserveInput.setCustomValidity('Reserve price must be at least 2000.'); 
+          } 
+          else 
+          { 
+            reserveInput.setCustomValidity('');
+           } 
+          });
+          
+// Toggle bid form
+function toggleBidSection(auctionId) {
+const section = document.getElementById(`bid-section-${auctionId}`);
+section.style.display = section.style.display === "none" ? "block" : "none";
+}
+
+
+// Countdown timer
+    function updateCountdown(id, endTime) {
+      const timerEl = document.getElementById(`timer-${id}`);
+      const bidContainer = document.getElementById(`bid-container-${id}`);
+      const end = new Date(endTime).getTime();
+
+      const interval = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = end - now;
+
+        if (distance <= 0) {
+          clearInterval(interval);
+          timerEl.innerHTML = "Auction Ended";
+          bidContainer.innerHTML = "<span class='ended'>Auction Ended</span>";
+          return;
+        }
+
+        const hours = Math.floor((distance / (1000 * 60 * 60)));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        timerEl.innerHTML = `${hours}h ${minutes}m ${seconds}s`;
+      }, 1000);
+    }
+
+    // Initialize all countdowns
+    {% for auction in auctions %}
+    updateCountdown({{ auction.id }}, "{{ auction.end_time|date:'Y-m-d\\TH:i:s' }}");
+    {% endfor %}
+
+    // Submit bid via AJAX
+    function submitBid(event, auctionId) {
+      event.preventDefault();
+      const form = document.getElementById(`bid-form-${auctionId}`);
+      const bidInput = form.querySelector('input[name="bid_amount"]');
+      const messageEl = document.getElementById(`bid-message-${auctionId}`);
+      const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+     fetch("{% url 'place_bid_ajax' 0 %}".replace("0", auctionId), {
+    method: 'POST',
+    headers: {
+        'X-CSRFToken': csrfToken,
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ bid_amount: bidInput.value })
+})
+
+        .then(response => response.json())
+        .then(data => {
+    if (data.success) {
+        document.getElementById(`highest-bid-${auctionId}`).innerText = data.new_highest_bid;
+        document.querySelector(`#bid-section-${auctionId} strong`).innerText = data.highest_bidder; // ✅ update bidder name
+        bidInput.value = '';
+        messageEl.style.color = 'green';
+        messageEl.innerText = data.message;
+    } else {
+        messageEl.style.color = 'red';
+        messageEl.innerText = data.message;
+    }
+})
+
+        .catch(err => console.error(err));
+    }
+
+    // ===== CSRF Helper =====
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+
+ async function updateCartCount() {
+  try {
+    const response = await fetch("/cart/get/");
+    const data = await response.json();
+    const cartCount = document.getElementById("cartCount");
+    if(cartCount){
+      cartCount.textContent = data.cart.length || 0;
+    }
+  } catch(err){
+    console.error("Failed to fetch cart count:", err);
+    const cartCount = document.getElementById("cartCount");
+    if(cartCount) cartCount.textContent = 0;
+  }
+}
+
+// Call it on page load
+document.addEventListener("DOMContentLoaded", () => {
+  updateCartCount();
+});
+
+// Get search input and all cards
+const searchBar = document.getElementById("searchBar");
+const artworkCards = document.querySelectorAll(".artwork-card"); // For Fixed Price
+// For Auction page use ".auction-card" instead
+
+searchBar.addEventListener("input", () => {
+    const query = searchBar.value.toLowerCase(); // user input
+
+    artworkCards.forEach(card => {
+        const title = card.querySelector("h3").textContent.toLowerCase();
+        const artist = card.querySelector("p").textContent.toLowerCase(); // first <p> = artist
+        // Add description if needed: const desc = card.querySelector("p.description").textContent.toLowerCase();
+
+        // Show card if query matches title or artist
+        if(title.includes(query) || artist.includes(query)){
+            card.style.display = "block";
+        } else {
+            card.style.display = "none";
+        }
+    });
+});
+
+  </script>
+
+</body>
+
+</html>

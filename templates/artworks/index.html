@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArtoMart | Home</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'artworks/css/index.css' %}">
+</head>
+<body>
+  <header class="navbar">
+    <div class="logo">
+      <img src="{% static 'artworks/images/logo.png' %}" alt="ArtoMart Logo" />
+      <span class="brand">ARTOMART</span>
+    </div>
+    <nav class="nav-links">
+      <ul>
+        <li><a href="#" class="active">Home</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </nav>
+    <div class="nav-actions">
+      <a href="{% url 'login' %}">Login</a>
+    </div>
+  </header>
+
+  <section class="hero" style="background: url('{% static "artworks/images/image.jpg" %}') no-repeat center center/cover;">
+    <div class="hero-content">
+      <h1>Where Art Meets Commerce</h1>
+      <p>Discover, buy, and sell amazing artworks from around the world.</p>
+      <a href="{% url 'login' %}" class="btn">Get Started</a>
+    </div>
+  </section> 
+
+  <!-- Gallery Section -->
+  <section id="gallery" class="gallery">
+    <h1>GALLERY</h1>
+    <div class="gallery-grid">
+      <div class="card">
+        <img src="{% static 'artworks/images/images1.jpg' %}" alt="Art 1">
+        <h3>Sunset Dreams</h3>
+        <p>$450</p>
+        <small>By Sarah Chen</small>
+      </div>
+      <div class="card">
+        <img src="{% static 'artworks/images/images2.jpg' %}" alt="Art 2">
+        <h3>Ocean Breeze</h3>
+        <p>$320</p>
+        <small>By Liam Smith</small>
+      </div>
+      <div class="card">
+        <img src="{% static 'artworks/images/images3.jpg' %}" alt="Art 3">
+        <h3>Abstract Vision</h3>
+        <p>$600</p>
+        <small>By Emily Davis</small>
+      </div>
+      <!-- Add more cards as needed -->
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="contact-section" id="contact">
+    <h1>Contact Us</h1>
+    <div class="contact-container">
+      <div class="contact-info">
+        <h2>Get in Touch</h2>
+        <p><strong>Address:</strong> ArtoMart HQ, Kochi, Kerala</p>
+        <p><strong>Email:</strong> support@artomart.com</p>
+        <p><strong>Phone:</strong> +91 98765 43210</p>
+      </div>
+     
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="about-section" id="about">
+    <h1>About <span>ArtoMart</span></h1>
+    <p>ArtoMart is a creative online marketplace where artists and art lovers connect...</p>
+  </section>
+
+  <!-- Team Section -->
+  <section class="team-section">
+    <h2>Meet Our Team</h2>
+    <div class="team-cards">
+      <div class="team-card">
+        <img src="{% static 'images/avatar_femle1.jpg' %}" alt="Merry Queen" class="avatar-img">
+        <h3>Merry Queen</h3>
+        <p>Founder & Designer</p>
+      </div>
+      <div class="team-card">
+        <img src="{% static 'images/avatar_male1.jpg' %}" alt="John Mathew" class="avatar-img">
+        <h3>John Mathew</h3>
+        <p>Developer</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 ArtoMart. All Rights Reserved.</p>
+  </footer>
+</body>
+</html>
